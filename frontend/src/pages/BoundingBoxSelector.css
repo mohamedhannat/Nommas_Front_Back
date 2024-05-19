@@ -1,0 +1,43 @@
+.App {
+    text-align: center;
+  }
+  
+  .video-container {
+    position: relative;
+    display: inline-block;
+    width: 640px; /* Fixed width */
+    height: 480px; /* Fixed height */
+    margin: auto;
+  }
+  
+  .video {
+    width: 640px; /* Fixed width */
+    height: 480px; /* Fixed height */
+  }
+  
+  .canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 640px; /* Fixed width */
+    height: 480px; /* Fixed height */
+  }
+  
+  .controls {
+    margin-bottom: 10px;
+  }
+  
+  .control-button {
+    margin-right: 10px;
+    padding: 10px 20px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  
+  .control-button:hover {
+    background-color: #0056b3;
+  }
+  

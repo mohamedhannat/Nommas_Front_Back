@@ -1,0 +1,6 @@
+
+        train: datas/train/images
+        val: datas/valid/images
+        nc: 1
+        names: ["bottle"]
+        
