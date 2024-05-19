@@ -174,7 +174,7 @@ def generate_sift_frames():
 
                 if len(good_matches) > 5:
                     src_pts = np.float32([roi_keypoints[m.queryIdx].pt for m in good_matches]).reshape(-1, 1, 2)
-                    dst_pts = np.float32([frame_keypoints[m.trainIdx].pt for m in good matches]).reshape(-1, 1, 2)
+                    dst_pts = np.float32([frame_keypoints[m.trainIdx].pt for m in good_matches]).reshape(-1, 1, 2)
 
                     M, mask = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC, 5.0)
 
@@ -252,8 +252,7 @@ def save_annotations():
 
         for item in annotations:
             label = item['label']
-            if label not in tags:
-                continue
+            if label not in tags, continue
 
             rand = os.urandom(1)[0] / 255.0
             if rand < float(train_percent) / 100:
@@ -332,7 +331,6 @@ def start_training():
         return jsonify(message='Training started successfully.')
     else:
         return jsonify(error='Training failed.', details=output), 500
-
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
