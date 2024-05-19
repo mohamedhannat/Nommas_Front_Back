@@ -298,10 +298,11 @@ def save_annotations():
         save_annotations(test, 'test')
 
         data_yaml = f"""
-        train: {os.path.join(base_dir, 'train', 'images').replace('\\', '/')}
-        val: {os.path.join(base_dir, 'valid', 'images').replace('\\', '/')}
-        nc: {len(tags)}
-        names: {json.dumps(tags)}"""
+train: {os.path.join(base_dir, 'train', 'images').replace('\\\\', '/')}
+val: {os.path.join(base_dir, 'valid', 'images').replace('\\\\', '/')}
+nc: {len(tags)}
+names: {json.dumps(tags)}
+"""
 
         data_yaml_path = os.path.join(base_dir, 'data.yaml')
         with open(data_yaml_path, 'w') as f:
@@ -335,4 +336,4 @@ def start_training():
 if __name__ == "__main__":
     threading.Thread(target=generate_frames, args=("runs/train/exp3/weights/best.pt", 0, (640, 640), 0.25, 0.45, 1000, "", None, False, 3, False, False, False, False)).start()
     threading.Thread(target=generate_sift_frames).start()
-    app.run(host="0.0.0.0", port=5000)
+    app.run(host="0.0.0.0", port=int(os.environ.get('PORT', 5000)))
