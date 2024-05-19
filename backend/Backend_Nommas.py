@@ -333,7 +333,9 @@ def start_training():
     else:
         return jsonify(error='Training failed.', details=output), 500
 
+
 if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 5000))
     threading.Thread(target=generate_frames, args=("runs/train/exp3/weights/best.pt", 0, (640, 640), 0.25, 0.45, 1000, "", None, False, 3, False, False, False, False)).start()
     threading.Thread(target=generate_sift_frames).start()
-    app.run(host="0.0.0.0", port=int(os.environ.get('PORT', 5000)))
+    app.run(host="0.0.0.0", port=port)
