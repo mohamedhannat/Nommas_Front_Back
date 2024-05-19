@@ -26,7 +26,7 @@ const Matching = () => {
   useEffect(() => {
     const fetchVideo = () => {
       if (videoRef.current) {
-        videoRef.current.src = 'http://localhost:5000/video_feed';
+        videoRef.current.src = 'https://nommas-front-back.onrender.com/video_feed';
       }
     };
     fetchVideo();
@@ -72,7 +72,7 @@ const Matching = () => {
 
   const handleSaveClick = () => {
     setSelecting(false);
-    axios.post('http://localhost:5000/set_bbox', {
+    axios.post('https://nommas-front-back.onrender.com/set_bbox', {
       x1: Math.round(bbox.x1),
       y1: Math.round(bbox.y1),
       x2: Math.round(bbox.x2),
@@ -86,7 +86,7 @@ const Matching = () => {
         context.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
         // Refresh the video stream
         if (videoRef.current) {
-          videoRef.current.src = 'http://localhost:5000/video_feed?' + new Date().getTime(); // Add a timestamp to force refresh
+          videoRef.current.src = 'https://nommas-front-back.onrender.com/video_feed?' + new Date().getTime(); // Add a timestamp to force refresh
         }
       }
     }).catch((error) => {
