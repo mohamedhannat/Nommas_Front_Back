@@ -26,6 +26,7 @@ logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 detection_data = []
+run_params = None  # Initialize run_params with a default value
 
 # Initialize SIFT detector
 sift = cv2.SIFT_create(nfeatures=1500)
@@ -40,87 +41,89 @@ cap = cv2.VideoCapture(0)
 # BFMatcher with default params
 bf = cv2.BFMatcher()
 
-def generate_frames(weights, source, imgsz, conf_thres, iou_thres, max_det, device, classes, agnostic_nms, line_thickness, hide_labels, hide_conf, half, dnn):
-    # Convert parameters to correct types
-    imgsz = tuple(map(int, imgsz))
-    conf_thres = float(conf_thres)
-    iou_thres = float(iou_thres)
-    max_det = int(max_det)
-    line_thickness = int(line_thickness)
-    hide_labels = bool(hide_labels)
-    hide_conf = bool(hide_conf)
-    half = bool(half)
-    dnn = bool(dnn)
+# def generate_frames(weights, source, imgsz, conf_thres, iou_thres, max_det, device, classes, agnostic_nms, line_thickness, hide_labels, hide_conf, half, dnn):
+#     # Convert parameters to correct types
+#     imgsz = tuple(map(int, imgsz))
+#     conf_thres = float(conf_thres)
+#     iou_thres = float(iou_thres)
+#     max_det = int(max_det)
+#     line_thickness = int(line_thickness)
+#     hide_labels = bool(hide_labels)
+#     hide_conf = bool(hide_conf)
+#     half = bool(half)
+#     dnn = bool(dnn)
 
-    # Load model
-    device = select_device(device)
-    model = DetectMultiBackend(weights, device=device, dnn=dnn)
-    stride, names, pt = model.stride, model.names, model.pt
-    imgsz = check_img_size(imgsz, s=stride)  # check image size
+#     # Load model
+#     device = select_device(device)
+#     model = DetectMultiBackend(weights, device=device, dnn=dnn)
+#     stride, names, pt = model.stride, model.names, model.pt
+#     imgsz = check_img_size(imgsz, s=stride)  # check image size
 
-    # Initialize webcam
-    cap = cv2.VideoCapture(source)
-    if not cap.isOpened():
-        print(f"Error: Could not open webcam {source}")
-        return
+#     # Initialize webcam
+#     cap = cv2.VideoCapture(source)
+#     if not cap.isOpened():
+#         print(f"Error: Could not open webcam {source}")
+#         return
 
-    # Run inference
-    model.warmup(imgsz=(1, 3, *imgsz))  # warmup
-    while cap.isOpened():
-        ret, frame = cap.read()
-        if not ret:
-            print("Error: Failed to capture image")
-            break
+#     # Run inference
+#     model.warmup(imgsz=(1, 3, *imgsz))  # warmup
+#     while cap.isOpened():
+#         ret, frame = cap.read()
+#         if not ret:
+#             print("Error: Failed to capture image")
+#             break
 
-        # Preprocess image
-        img = torch.from_numpy(frame).to(model.device)
-        img = img.permute(2, 0, 1)  # convert to [channels, height, width]
-        img = img.half() if model.fp16 else img.float()  # uint8 to fp16/32
-        img /= 255  # 0 - 255 to 0.0 - 1.0
-        if len(img.shape) == 3:
-            img = img.unsqueeze(0)  # expand for batch dim
+#         # Preprocess image
+#         img = torch.from_numpy(frame).to(model.device)
+#         img = img.permute(2, 0, 1)  # convert to [channels, height, width]
+#         img = img.half() if model.fp16 else img.float()  # uint8 to fp16/32
+#         img /= 255  # 0 - 255 to 0.0 - 1.0
+#         if len(img.shape) == 3:
+#             img = img.unsqueeze(0)  # expand for batch dim
 
-        # Inference
-        pred = model(img)
+#         # Inference
+#         pred = model(img)
 
-        # NMS
-        pred = non_max_suppression(pred, conf_thres, iou_thres, classes, agnostic_nms, max_det=max_det)
+#         # NMS
+#         pred = non_max_suppression(pred, conf_thres, iou_thres, classes, agnostic_nms, max_det=max_det)
 
-        # Process predictions
-        detections = []
-        for i, det in enumerate(pred):  # per image
-            annotator = Annotator(frame, line_width=line_thickness, example=str(names))
-            if len(det):
-                # Rescale boxes from img_size to frame size
-                det[:, :4] = scale_boxes(img.shape[2:], det[:, :4], frame.shape).round()
+#         # Process predictions
+#         detections = []
+#         for i, det in enumerate(pred):  # per image
+#             annotator = Annotator(frame, line_width=line_thickness, example=str(names))
+#             if len(det):
+#                 # Rescale boxes from img_size to frame size
+#                 det[:, :4] = scale_boxes(img.shape[2:], det[:, :4], frame.shape).round()
 
-                # Collect results
-                for *xyxy, conf, cls in reversed(det):
-                    if conf > conf_thres:
-                        label = None if hide_labels else (names[int(cls)] if hide_conf else f"{names[int(cls)]} {conf:.2f}")
-                        annotator.box_label(xyxy, label, color=colors(int(cls), True))
-                        detections.append({
-                            "label": label,
-                            "x": xyxy[0].item() / frame.shape[1] * 100,
-                            "y": xyxy[1].item() / frame.shape[0] * 100,
-                            "width": (xyxy[2].item() - xyxy[0].item()) / frame.shape[1] * 100,
-                            "height": (xyxy[3].item() - xyxy[1].item()) / frame.shape[0] * 100,
-                        })
+#                 # Collect results
+#                 for *xyxy, conf, cls in reversed(det):
+#                     if conf > conf_thres:
+#                         label = None if hide_labels else (names[int(cls)] if hide_conf else f"{names[int(cls)]} {conf:.2f}")
+#                         annotator.box_label(xyxy, label, color=colors(int(cls), True))
+#                         detections.append({
+#                             "label": label,
+#                             "x": xyxy[0].item() / frame.shape[1] * 100,
+#                             "y": xyxy[1].item() / frame.shape[0] * 100,
+#                             "width": (xyxy[2].item() - xyxy[0].item()) / frame.shape[1] * 100,
+#                             "height": (xyxy[3].item() - xyxy[1].item()) / frame.shape[0] * 100,
+#                         })
 
-            global detection_data
-            detection_data = detections
+#             global detection_data
+#             detection_data = detections
 
-            # Stream results
-            frame = annotator.result()
-            ret, buffer = cv2.imencode('.jpg', frame)
-            frame = buffer.tobytes()
-            yield (b'--frame\r\n'
-                   b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+#             # Stream results
+#             frame = annotator.result()
+#             ret, buffer = cv2.imencode('.jpg', frame)
+#             frame = buffer.tobytes()
+#             yield (b'--frame\r\n'
+#                    b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
 
-@app.route('/yolo_video_feed')
-def video_feed():
-    global run_params
-    return Response(generate_frames(**run_params), mimetype='multipart/x-mixed-replace; boundary=frame')
+# @app.route('/yolo_video_feed')
+# def video_feed():
+#     global run_params
+#     if run_params is None:
+#         return jsonify(error="run_params not set"), 400
+#     return Response(generate_frames(**run_params), mimetype='multipart/x-mixed-replace; boundary=frame')
 
 @app.route('/start_detection', methods=['POST'])
 def start_detection():
@@ -229,112 +232,112 @@ def set_bbox():
     detection_geometry = process_bbox(data)
     return jsonify(success=True, detectionGeometry=detection_geometry)
 
-@app.route('/save-annotations', methods=['POST'])
-def save_annotations():
-    try:
-        data = request.json
-        annotations = data['annotations']
-        dataset_folder = data['datasetFolder']
-        train_percent = data['trainPercent']
-        val_percent = data['valPercent']
-        test_percent = data['testPercent']
-        tags = data['tags']
+# @app.route('/save-annotations', methods=['POST'])
+# def save_annotations():
+#     try:
+#         data = request.json
+#         annotations = data['annotations']
+#         dataset_folder = data['datasetFolder']
+#         train_percent = data['trainPercent']
+#         val_percent = data['valPercent']
+#         test_percent = data['testPercent']
+#         tags = data['tags']
 
-        base_dir = os.path.join(dataset_folder)
-        os.makedirs(os.path.join(base_dir, 'train', 'images'), exist_ok=True)
-        os.makedirs(os.path.join(base_dir, 'train', 'labels'), exist_ok=True)
-        os.makedirs(os.path.join(base_dir, 'valid', 'images'), exist_ok=True)
-        os.makedirs(os.path.join(base_dir, 'valid', 'labels'), exist_ok=True)
-        os.makedirs(os.path.join(base_dir, 'test', 'images'), exist_ok=True)
-        os.makedirs(os.path.join(base_dir, 'test', 'labels'), exist_ok=True)
+#         base_dir = os.path.join(dataset_folder)
+#         os.makedirs(os.path.join(base_dir, 'train', 'images'), exist_ok=True)
+#         os.makedirs(os.path.join(base_dir, 'train', 'labels'), exist_ok=True)
+#         os.makedirs(os.path.join(base_dir, 'valid', 'images'), exist_ok=True)
+#         os.makedirs(os.path.join(base_dir, 'valid', 'labels'), exist_ok=True)
+#         os.makedirs(os.path.join(base_dir, 'test', 'images'), exist_ok=True)
+#         os.makedirs(os.path.join(base_dir, 'test', 'labels'), exist_ok=True)
 
-        train, val, test = [], [], []
+#         train, val, test = [], [], []
 
-        for item in annotations:
-            label = item['label']
-            if label not in tags:
-                continue
+#         for item in annotations:
+#             label = item['label']
+#             if label not in tags:
+#                 continue
 
-            rand = os.urandom(1)[0] / 255.0
-            if rand < float(train_percent) / 100:
-                train.append(item)
-            elif rand < (float(train_percent) + float(val_percent)) / 100:
-                val.append(item)
-            else:
-                test.append(item)
+#             rand = os.urandom(1)[0] / 255.0
+#             if rand < float(train_percent) / 100:
+#                 train.append(item)
+#             elif rand < (float(train_percent) + float(val_percent)) / 100:
+#                 val.append(item)
+#             else:
+#                 test.append(item)
 
-        def save_annotations(data, type):
-            for anno in data:
-                image_id = anno['imageId']
-                label = anno['label']
-                try:
-                    label_index = tags.index(label)
-                except ValueError:
-                    continue
-                x_center = anno['x_center'] / 100
-                y_center = anno['y_center'] / 100
-                bbox_width = anno['bbox_width'] / 100
-                bbox_height = anno['bbox_height'] / 100
-                image_data = anno['imageData']
+#         def save_annotations(data, type):
+#             for anno in data:
+#                 image_id = anno['imageId']
+#                 label = anno['label']
+#                 try:
+#                     label_index = tags.index(label)
+#                 except ValueError:
+#                     continue
+#                 x_center = anno['x_center'] / 100
+#                 y_center = anno['y_center'] / 100
+#                 bbox_width = anno['bbox_width'] / 100
+#                 bbox_height = anno['bbox_height'] / 100
+#                 image_data = anno['imageData']
 
-                image_filename = os.path.basename(image_id) + '.png'
-                label_filename = os.path.basename(image_id) + '.txt'
+#                 image_filename = os.path.basename(image_id) + '.png'
+#                 label_filename = os.path.basename(image_id) + '.txt'
 
-                label_file = os.path.join(base_dir, type, 'labels', label_filename)
-                with open(label_file, 'a') as f:
-                    annotation_str = f"{label_index} {x_center} {y_center} {bbox_width} {bbox_height}\n"
-                    f.write(annotation_str)
+#                 label_file = os.path.join(base_dir, type, 'labels', label_filename)
+#                 with open(label_file, 'a') as f:
+#                     annotation_str = f"{label_index} {x_center} {y_center} {bbox_width} {bbox_height}\n"
+#                     f.write(annotation_str)
 
-                image_file = os.path.join(base_dir, type, 'images', image_filename)
-                with open(image_file, 'wb') as f:
-                    try:
-                        if image_data.startswith('data:image'):
-                            f.write(base64.b64decode(image_data.split(',')[1]))
-                    except Exception as e:
-                        continue
+#                 image_file = os.path.join(base_dir, type, 'images', image_filename)
+#                 with open(image_file, 'wb') as f:
+#                     try:
+#                         if image_data.startswith('data:image'):
+#                             f.write(base64.b64decode(image_data.split(',')[1]))
+#                     except Exception as e:
+#                         continue
 
-        save_annotations(train, 'train')
-        save_annotations(val, 'valid')
-        save_annotations(test, 'test')
+#         save_annotations(train, 'train')
+#         save_annotations(val, 'valid')
+#         save_annotations(test, 'test')
 
-        data_yaml = f"""
-train: {os.path.join(base_dir, 'train', 'images').replace('\\\\', '/')}
-val: {os.path.join(base_dir, 'valid', 'images').replace('\\\\', '/')}
-nc: {len(tags)}
-names: {json.dumps(tags)}
-"""
+#         data_yaml = f"""
+# train: {os.path.join(base_dir, 'train', 'images').replace('\\\\', '/')}
+# val: {os.path.join(base_dir, 'valid', 'images').replace('\\\\', '/')}
+# nc: {len(tags)}
+# names: {json.dumps(tags)}
+# """
 
-        data_yaml_path = os.path.join(base_dir, 'data.yaml')
-        with open(data_yaml_path, 'w') as f:
-            f.write(data_yaml)
+#         data_yaml_path = os.path.join(base_dir, 'data.yaml')
+#         with open(data_yaml_path, 'w') as f:
+#             f.write(data_yaml)
 
-        return jsonify(message='Annotations saved and training data prepared successfully.', data_yaml_path=data_yaml_path)
-    except Exception as e:
-        return jsonify(error=f'Failed to parse request data. {str(e)}'), 500
+#         return jsonify(message='Annotations saved and training data prepared successfully.', data_yaml_path=data_yaml_path)
+#     except Exception as e:
+#         return jsonify(error=f'Failed to parse request data. {str(e)}'), 500
 
-@app.route('/start-training', methods=['GET'])
-def start_training():
-    dataset_folder = request.args.get('dataset_folder')
-    data_yaml_path = os.path.join(dataset_folder, 'data.yaml')
-    logger.info(f"Starting training with datas: {data_yaml_path}")
+# @app.route('/start-training', methods=['GET'])
+# def start_training():
+#     dataset_folder = request.args.get('dataset_folder')
+#     data_yaml_path = os.path.join(dataset_folder, 'data.yaml')
+#     logger.info(f"Starting training with datas: {data_yaml_path}")
 
-    def run_training(data_path):
-        try:
-            run(data=data_path, weights='yolov5s.pt', epochs=1, batch_size=2, imgsz=640, callbacks=None)
-            return True, "Training completed successfully."
-        except Exception as e:
-            logger.error(str(e))
-            return False, str(e)
+#     def run_training(data_path):
+#         try:
+#             run(data=data_path, weights='yolov5s.pt', epochs=1, batch_size=2, imgsz=640, callbacks=None)
+#             return True, "Training completed successfully."
+#         except Exception as e:
+#             logger.error(str(e))
+#             return False, str(e)
 
-    success, output = run_training(data_yaml_path)
+#     success, output = run_training(data_yaml_path)
     
-    if success:
-        return jsonify(message='Training started successfully.')
-    else:
-        return jsonify(error='Training failed.', details=output), 500
+#     if success:
+#         return jsonify(message='Training started successfully.')
+#     else:
+#         return jsonify(error='Training failed.', details=output), 500
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
-    threading.Thread(target=generate_frames, args=("runs/train/exp3/weights/best.pt", 0, (640, 640), 0.25, 0.45, 1000, "", None, False, 3, False, False, False, False)).start()
+    #threading.Thread(target=generate_frames, args=("runs/train/exp3/weights/best.pt", 0, (640, 640), 0.25, 0.45, 1000, "", None, False, 3, False, False, False, False)).start()
     threading.Thread(target=generate_sift_frames).start()
     app.run(host="0.0.0.0", port=port)
