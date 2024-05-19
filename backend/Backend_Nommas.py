@@ -329,7 +329,7 @@ def start_training():
     success, output = run_training(data_yaml_path)
     
     if success:
-        return jsonify(message='Training started successfully.')
+        return jsonify(message='Trainings started successfully.')
     else:
         return jsonify(error='Training failed.', details=output), 500
 
