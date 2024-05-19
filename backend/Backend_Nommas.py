@@ -301,8 +301,7 @@ def save_annotations():
         train: {os.path.join(base_dir, 'train', 'images').replace('\\', '/')}
         val: {os.path.join(base_dir, 'valid', 'images').replace('\\', '/')}
         nc: {len(tags)}
-        names: {json.dumps(tags)}
-        """
+        names: {json.dumps(tags)}"""
 
         data_yaml_path = os.path.join(base_dir, 'data.yaml')
         with open(data_yaml_path, 'w') as f:
