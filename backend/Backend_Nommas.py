@@ -316,7 +316,7 @@ names: {json.dumps(tags)}
 def start_training():
     dataset_folder = request.args.get('dataset_folder')
     data_yaml_path = os.path.join(dataset_folder, 'data.yaml')
-    logger.info(f"Starting training with data: {data_yaml_path}")
+    logger.info(f"Starting training with datas: {data_yaml_path}")
 
     def run_training(data_path):
         try:
