@@ -51,3 +51,8 @@ wheel>=0.38.0 # not directly required, pinned by Snyk to avoid a vulnerability
 
 # Add gunicorn for deployment
 gunicorn>=20.1.0
+
+# Flask and related packages
+Flask>=2.0.2
+flask-cors>=3.0.10
+werkzeug>=2.0.2
