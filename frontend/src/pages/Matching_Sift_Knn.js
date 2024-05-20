@@ -24,13 +24,44 @@ const Matching = () => {
   const [selecting, setSelecting] = useState(false);
 
   useEffect(() => {
-    const fetchVideo = () => {
-      if (videoRef.current) {
-        videoRef.current.src = 'https://nommas-front-back.onrender.com/video_feed';
-      }
-    };
-    fetchVideo();
+    if (videoRef.current) {
+      navigator.mediaDevices.getUserMedia({ video: true })
+        .then(stream => {
+          videoRef.current.srcObject = stream;
+          videoRef.current.play();
+          // Start sending video frames to the backend
+          setInterval(() => captureFrameAndSend(), 100); // Send frames every 100ms (10 FPS)
+        })
+        .catch(err => {
+          console.error("Error accessing the camera: ", err);
+        });
+    }
   }, []);
+
+  const captureFrameAndSend = () => {
+    if (!videoRef.current) return;
+
+    const canvas = document.createElement('canvas');
+    const video = videoRef.current;
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    const imageData = canvas.toDataURL('image/jpeg');
+
+    axios.post('https://nommasaiapp-o6ym9pt2e-mohamed-hannats-projects.vercel.app/api/process_frame', {
+      image: imageData
+    }).then((response) => {
+      if (response.data.success && response.data.detectionGeometry) {
+        setDetectionGeometry(response.data.detectionGeometry);
+      } else {
+        setDetectionGeometry(null);
+      }
+    }).catch((error) => {
+      console.error("There was an error processing the frame!", error);
+    });
+  };
 
   const handleMouseDown = (e) => {
     if (!selecting) return;
@@ -72,26 +103,37 @@ const Matching = () => {
 
   const handleSaveClick = () => {
     setSelecting(false);
-    axios.post('https://nommas-front-back.onrender.com/set_bbox', {
-      x1: Math.round(bbox.x1),
-      y1: Math.round(bbox.y1),
-      x2: Math.round(bbox.x2),
-      y2: Math.round(bbox.y2),
+    const canvas = document.createElement('canvas');
+    const video = videoRef.current;
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    const imageData = canvas.toDataURL('image/jpeg');
+
+    axios.post('https://nommasaiapp-o6ym9pt2e-mohamed-hannats-projects.vercel.app/api/set_bbox', {
+      image: imageData,
+      bbox: {
+        x1: Math.round(bbox.x1),
+        y1: Math.round(bbox.y1),
+        x2: Math.round(bbox.x2),
+        y2: Math.round(bbox.y2),
+      }
     }).then((response) => {
-      if (response.data.detectionGeometry) {
+      if (response.data.success && response.data.detectionGeometry) {
         setSelectionGeometry(null); // Clear the drawing bounding box
         setDetectionGeometry(response.data.detectionGeometry);
-        // Clear the canvas
-        const context = canvasRef.current.getContext('2d');
-        context.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
-        // Refresh the video stream
-        if (videoRef.current) {
-          videoRef.current.src = 'https://nommas-front-back.onrender.com/video_feed?' + new Date().getTime(); // Add a timestamp to force refresh
-        }
+        clearCanvas(); // Clear the canvas
       }
     }).catch((error) => {
       console.error("There was an error saving the bounding box!", error);
     });
+  };
+
+  const clearCanvas = () => {
+    const context = canvasRef.current.getContext('2d');
+    context.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
   };
 
   return (
@@ -112,7 +154,7 @@ const Matching = () => {
         </button>
       </div>
       <div className="relative" style={{ width: '640px', height: '480px', border: '4px solid gray' }}>
-        <img ref={videoRef} alt="Video Stream" className="w-full h-full" />
+        <video ref={videoRef} className="w-full h-full" />
         <canvas
           ref={canvasRef}
           className="absolute top-0 left-0"
